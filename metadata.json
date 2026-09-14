@@ -1,6 +1,6 @@
 {
-  "name": "GM Fashion Product Data Sync & AI Category Mapping Tool",
-  "description": "Internal prototype to normalize Wondersoft exports, aggregate 7-store stocks, map GM Fashion e-commerce taxonomy via AI, and auto-generate S-size image paths and Excel files.",
+  "name": "Data Sync Software",
+  "description": "Internal prototype to normalize Wondersoft exports, aggregate 7-store stocks, map GM Fashion e-commerce taxonomy, and generate Image Team Excel with front, back, left, closeup image URLs.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

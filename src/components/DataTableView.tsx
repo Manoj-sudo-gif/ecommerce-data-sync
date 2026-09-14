@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ProcessedProductRecord } from '../types';
-import { Image, Layers, Sparkles, AlertCircle, ChevronDown, ChevronRight, Store } from 'lucide-react';
+import { Image, Layers, AlertCircle, ChevronDown, ChevronRight, Store } from 'lucide-react';
 
 interface DataTableViewProps {
   products: ProcessedProductRecord[];

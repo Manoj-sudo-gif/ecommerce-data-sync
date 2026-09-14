@@ -6,7 +6,7 @@ import {
   getProductTypesForDepartment,
 } from '../data/categoryMaster';
 import {
-  Sparkles,
+  Tag,
   CheckCircle2,
   AlertTriangle,
   Edit3,
@@ -76,7 +76,7 @@ export const AICategoryReviewTable: React.FC<AICategoryReviewTableProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-amber-500" />
+            <Tag className="w-5 h-5 text-indigo-600" />
             <h3 className="font-bold text-slate-800 text-base">
               AI Category Classification Review
             </h3>

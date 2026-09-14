@@ -37,7 +37,8 @@ import { SAMPLE_WONDERSOFT_RECORDS } from './utils/sampleData';
 import {
   LayoutDashboard,
   Table,
-  Sparkles,
+  Tag,
+  Heart,
   Image as ImageIcon,
   AlertTriangle,
   Settings,
@@ -308,7 +309,7 @@ export function App() {
                     : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Tag className="w-4 h-4 text-indigo-400" />
                 <span>AI Category Review</span>
                 {reviewNeededCount > 0 && (
                   <span className="bg-amber-500 text-slate-950 font-bold text-[10px] px-1.5 py-0.5 rounded-full ml-1">
@@ -438,6 +439,14 @@ export function App() {
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer id="page-footer" className="border-t border-slate-200/80 mt-12 py-6 bg-white/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center space-x-1.5 text-sm font-medium text-slate-700">
+          <span>Made by Manoj</span>
+          <Heart className="w-4 h-4 text-red-500 fill-red-500 inline-block" />
+        </div>
+      </footer>
 
       {/* Pricing Settings Modal */}
       <ConfigModal

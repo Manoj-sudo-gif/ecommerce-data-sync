@@ -4,7 +4,6 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   ArrowRight,
-  Sparkles,
   Edit3,
   Plus,
   Trash2,

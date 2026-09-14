@@ -126,4 +126,8 @@ export interface ImageTeamRecord {
   brand: string;
   size: string;
   colour: string;
+  front?: string;
+  back?: string;
+  left?: string;
+  closeup?: string;
 }

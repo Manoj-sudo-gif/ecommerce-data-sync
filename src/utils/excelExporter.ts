@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { ProcessedProductRecord, ValidationIssue, ImageTeamRecord } from '../types';
+import { getGMImageAngleUrls } from './imageUrlGenerator';
 
 export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
   // Collect all unique store names across all products
@@ -272,6 +273,8 @@ export function exportImageTeamExcel(products: ProcessedProductRecord[]): void {
       rep = groupProducts[0];
     }
 
+    const imageUrls = getGMImageAngleUrls(rep);
+
     dataRows.push({
       'Product Name': rep.productName || '',
       'EAN': String(rep.ean || ''),
@@ -279,6 +282,10 @@ export function exportImageTeamExcel(products: ProcessedProductRecord[]): void {
       'BRAND': rep.brand || '',
       'SIZE': rep.size || '',
       'COLOUR': rep.colour || '',
+      'front': imageUrls.front,
+      'back': imageUrls.back,
+      'left': imageUrls.left,
+      'closeup': imageUrls.closeup,
     });
   });
 
@@ -290,6 +297,10 @@ export function exportImageTeamExcel(products: ProcessedProductRecord[]): void {
     { wch: 20 }, // BRAND
     { wch: 12 }, // SIZE
     { wch: 18 }, // COLOUR
+    { wch: 75 }, // front
+    { wch: 75 }, // back
+    { wch: 75 }, // left
+    { wch: 75 }, // closeup
   ];
 
   const workbook = XLSX.utils.book_new();

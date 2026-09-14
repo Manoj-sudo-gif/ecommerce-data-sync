@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProcessedProductRecord } from '../types';
-import { Image, Layers, CheckCircle2, FileSpreadsheet, Download, Info } from 'lucide-react';
+import { Image, Layers, Download, Info, ExternalLink } from 'lucide-react';
+import { getGMImageAngleUrls } from '../utils/imageUrlGenerator';
 
 interface ImageMappingViewProps {
   products: ProcessedProductRecord[];
@@ -88,6 +89,17 @@ export const ImageMappingView: React.FC<ImageMappingViewProps> = ({
         {variantList.map((vg, idx) => {
           const imagePath = `images/${vg.sSizeEan}.jpg`;
 
+          // Pick representative SKU for URL generation
+          let rep = vg.skus.find((p) => p.ean === p.sSizeEan);
+          if (!rep) {
+            rep = vg.skus.find((p) => p.size?.trim().toUpperCase() === 'S');
+          }
+          if (!rep) {
+            rep = vg.skus[0];
+          }
+
+          const angleUrls = getGMImageAngleUrls(rep);
+
           return (
             <div
               key={idx}
@@ -134,6 +146,71 @@ export const ImageMappingView: React.FC<ImageMappingViewProps> = ({
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Generated GM Fashion Image Team URLs (front, back, left, closeup) */}
+              <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
+                <span className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wider flex items-center space-x-1">
+                  <Layers className="w-3 h-3 text-indigo-500" />
+                  <span>Image Team Excel URLs (300x300):</span>
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] font-mono">
+                  <a
+                    href={angleUrls.front}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded text-slate-700 hover:text-indigo-700 flex items-center justify-between group transition truncate"
+                    title={angleUrls.front}
+                  >
+                    <span className="truncate">
+                      <strong className="text-indigo-600 mr-1 font-sans">front:</strong>
+                      {angleUrls.front.split('/').pop()}
+                    </span>
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 ml-1 text-indigo-600" />
+                  </a>
+
+                  <a
+                    href={angleUrls.back}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded text-slate-700 hover:text-indigo-700 flex items-center justify-between group transition truncate"
+                    title={angleUrls.back}
+                  >
+                    <span className="truncate">
+                      <strong className="text-indigo-600 mr-1 font-sans">back:</strong>
+                      {angleUrls.back.split('/').pop()}
+                    </span>
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 ml-1 text-indigo-600" />
+                  </a>
+
+                  <a
+                    href={angleUrls.left}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded text-slate-700 hover:text-indigo-700 flex items-center justify-between group transition truncate"
+                    title={angleUrls.left}
+                  >
+                    <span className="truncate">
+                      <strong className="text-indigo-600 mr-1 font-sans">left:</strong>
+                      {angleUrls.left.split('/').pop()}
+                    </span>
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 ml-1 text-indigo-600" />
+                  </a>
+
+                  <a
+                    href={angleUrls.closeup}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1.5 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded text-slate-700 hover:text-indigo-700 flex items-center justify-between group transition truncate"
+                    title={angleUrls.closeup}
+                  >
+                    <span className="truncate">
+                      <strong className="text-indigo-600 mr-1 font-sans">closeup:</strong>
+                      {angleUrls.closeup.split('/').pop()}
+                    </span>
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 ml-1 text-indigo-600" />
+                  </a>
                 </div>
               </div>
             </div>
