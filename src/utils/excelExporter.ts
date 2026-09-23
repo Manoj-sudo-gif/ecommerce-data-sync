@@ -3,31 +3,8 @@ import { ProcessedProductRecord, ValidationIssue, ImageTeamRecord } from '../typ
 import { getGMImageAngleUrls } from './imageUrlGenerator';
 
 export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
-  // Collect all unique store names across all products
-  const storeNamesSet = new Set<string>();
-  products.forEach((p) => {
-    p.storeBreakdown?.forEach((sb) => {
-      if (sb.store && sb.store.trim()) {
-        storeNamesSet.add(sb.store.trim());
-      }
-    });
-  });
-  const allStoreNames = Array.from(storeNamesSet).sort((a, b) =>
-    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-  );
-
   const dataRows = products.map((p) => {
-    const storeStockMap: Record<string, number> = {};
-    p.storeBreakdown?.forEach((sb) => {
-      const sName = sb.store.trim();
-      storeStockMap[sName] = (storeStockMap[sName] || 0) + sb.stock;
-    });
-
-    const storeSummary =
-      p.storeBreakdownSummary ||
-      (p.storeBreakdown && p.storeBreakdown.length > 0
-        ? p.storeBreakdown.map((sb) => `${sb.store}: ${sb.stock}`).join(' | ')
-        : `${p.storeCount} stores`);
+    const imageUrls = getGMImageAngleUrls(p);
 
     const row: Record<string, any> = {
       'Main Category': p.mainCategory,
@@ -39,32 +16,14 @@ export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
       'Size': p.size,
       'Fabric': p.fabric,
       'EAN': String(p.ean), // Force string format for EAN
+      'Toon Label': p.toonLabel || p.styleNo || '',
       'Selling Price': p.sellingPrice,
-      'Total Stock Quantity': p.stockQuantity,
-      'Store Count': p.storeCount,
+      'Total Quantity': p.stockQuantity,
+      'front': imageUrls.front,
+      'back': imageUrls.back,
+      'left': imageUrls.left,
+      'closeup': imageUrls.closeup,
     };
-
-    // Include individual store counts for each EAN
-    allStoreNames.forEach((storeName) => {
-      row[`${storeName} (Stock)`] = storeStockMap[storeName] ?? 0;
-    });
-
-    row['Store-wise Breakdown'] = storeSummary;
-    row['Toon Label'] = p.toonLabel || p.styleNo || '';
-    row['StyleNo'] = p.styleNo;
-    row['Image Path'] = p.imagePath;
-    row['Cost Price'] = p.costPrice || '';
-    row['Discount'] = p.discount || '';
-    row['Meta Title'] = p.metaTitle || '';
-    row['Meta Keywords'] = p.metaKeywords || '';
-    row['Meta Description'] = p.metaDescription || '';
-    row['Fit'] = p.fit || '';
-    row['Product Description'] = p.productDescription || '';
-    row['Product Details'] = p.productDetails || '';
-    row['Original Wondersoft Group'] = p.originalProductGroup;
-    row['Original Wondersoft Dept'] = p.originalDepartment;
-    row['AI Confidence'] = `${Math.round(p.classificationResult.confidence * 100)}%`;
-    row['Classification Source'] = p.classificationResult.source;
 
     return row;
   });
@@ -73,98 +32,27 @@ export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
 
   // Set column widths for polished presentation
   const colWidths: { wch: number }[] = [
-    { wch: 15 }, // Main Category
-    { wch: 15 }, // Department
-    { wch: 15 }, // Product Type
-    { wch: 25 }, // Product Name
-    { wch: 15 }, // Brand
-    { wch: 12 }, // Colour
-    { wch: 8 },  // Size
-    { wch: 15 }, // Fabric
-    { wch: 16 }, // EAN
+    { wch: 16 }, // Main Category
+    { wch: 16 }, // Department
+    { wch: 16 }, // Product Type
+    { wch: 32 }, // Product Name
+    { wch: 16 }, // Brand
+    { wch: 14 }, // Colour
+    { wch: 10 }, // Size
+    { wch: 16 }, // Fabric
+    { wch: 18 }, // EAN
+    { wch: 18 }, // Toon Label (right next to EAN)
     { wch: 14 }, // Selling Price
-    { wch: 18 }, // Total Stock Quantity
-    { wch: 14 }, // Store Count
+    { wch: 16 }, // Total Quantity
+    { wch: 75 }, // front
+    { wch: 75 }, // back
+    { wch: 75 }, // left
+    { wch: 75 }, // closeup
   ];
-  // Add width for each store column
-  allStoreNames.forEach(() => {
-    colWidths.push({ wch: 16 });
-  });
-  colWidths.push(
-    { wch: 32 }, // Store-wise Breakdown
-    { wch: 16 }, // Toon Label
-    { wch: 15 }, // StyleNo
-    { wch: 25 }, // Image Path
-    { wch: 12 }, // Cost Price
-    { wch: 12 }, // Discount
-    { wch: 25 }, // Meta Title
-    { wch: 25 }, // Meta Keywords
-    { wch: 30 }, // Meta Description
-    { wch: 12 }, // Fit
-    { wch: 35 }, // Product Description
-    { wch: 35 }, // Product Details
-    { wch: 25 }, // Original Group
-    { wch: 25 }, // Original Dept
-    { wch: 14 }, // AI Confidence
-    { wch: 20 }, // Classification Source
-  );
   worksheet['!cols'] = colWidths;
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'E-Commerce Products');
-
-  // Also append Sheet 2: Dedicated Store-wise Inventory Breakdown
-  const storeInventoryRows = products.map((p) => {
-    const storeStockMap: Record<string, number> = {};
-    p.storeBreakdown?.forEach((sb) => {
-      const sName = sb.store.trim();
-      storeStockMap[sName] = (storeStockMap[sName] || 0) + sb.stock;
-    });
-
-    const sRow: Record<string, any> = {
-      'EAN': String(p.ean),
-      'Product Name': p.productName,
-      'Brand': p.brand,
-      'Colour': p.colour,
-      'Size': p.size,
-      'Toon Label': p.toonLabel || p.styleNo || '',
-      'Selling Price': p.sellingPrice,
-      'Total Stock': p.stockQuantity,
-      'Stores With Stock': p.storeCount,
-    };
-
-    allStoreNames.forEach((storeName) => {
-      sRow[storeName] = storeStockMap[storeName] ?? 0;
-    });
-
-    sRow['Store Breakdown Summary'] =
-      p.storeBreakdownSummary ||
-      (p.storeBreakdown && p.storeBreakdown.length > 0
-        ? p.storeBreakdown.map((sb) => `${sb.store}: ${sb.stock}`).join(' | ')
-        : `${p.storeCount} stores`);
-
-    return sRow;
-  });
-
-  const storeWorksheet = XLSX.utils.json_to_sheet(storeInventoryRows);
-  const storeColWidths: { wch: number }[] = [
-    { wch: 16 }, // EAN
-    { wch: 25 }, // Product Name
-    { wch: 15 }, // Brand
-    { wch: 12 }, // Colour
-    { wch: 8 },  // Size
-    { wch: 16 }, // Toon Label
-    { wch: 14 }, // Selling Price
-    { wch: 14 }, // Total Stock
-    { wch: 16 }, // Stores With Stock
-  ];
-  allStoreNames.forEach(() => {
-    storeColWidths.push({ wch: 16 });
-  });
-  storeColWidths.push({ wch: 35 }); // Store Breakdown Summary
-  storeWorksheet['!cols'] = storeColWidths;
-
-  XLSX.utils.book_append_sheet(workbook, storeWorksheet, 'Store-wise Inventory');
 
   XLSX.writeFile(workbook, 'GM_Fashion_Ecommerce_Products.xlsx');
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ProcessedProductRecord } from '../types';
-import { Image, Layers, AlertCircle, ChevronDown, ChevronRight, Store } from 'lucide-react';
+import { Layers, AlertCircle, ChevronDown, ChevronRight, Store } from 'lucide-react';
 
 interface DataTableViewProps {
   products: ProcessedProductRecord[];
@@ -43,7 +43,6 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ products }) => {
               <th className="py-3 px-3">EAN</th>
               <th className="py-3 px-3 text-right">MRP (₹)</th>
               <th className="py-3 px-3 text-center">Agg. Stock</th>
-              <th className="py-3 px-3">Image Path</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-sans">
@@ -146,22 +145,12 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ products }) => {
                         </span>
                       </div>
                     </td>
-
-                    {/* Image Path */}
-                    <td className="py-3 px-3">
-                      <div className="flex items-center space-x-1.5 font-mono text-[11px] text-slate-600">
-                        <Image className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                        <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          {p.imagePath}
-                        </span>
-                      </div>
-                    </td>
                   </tr>
 
                   {/* Expanded Individual Store Breakdown Drawer */}
                   {isExpanded && (
                     <tr className="bg-slate-50/80 border-b border-slate-200">
-                      <td colSpan={13} className="p-4">
+                      <td colSpan={12} className="p-4">
                         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-inner space-y-3">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
                             <div className="flex items-center space-x-2">

@@ -142,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
                           E-Commerce Master Catalog
                         </div>
                         <div className="text-[11px] text-slate-400 truncate">
-                          Stock, pricing, categories & store quantities
+                          EAN, Toon Label, pricing, stock & 4 image URLs
                         </div>
                       </div>
                     </button>

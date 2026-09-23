@@ -38,7 +38,6 @@ import {
   LayoutDashboard,
   Table,
   Tag,
-  Heart,
   Image as ImageIcon,
   AlertTriangle,
   Settings,
@@ -443,8 +442,7 @@ export function App() {
       {/* Footer */}
       <footer id="page-footer" className="border-t border-slate-200/80 mt-12 py-6 bg-white/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center space-x-1.5 text-sm font-medium text-slate-700">
-          <span>Made by Manoj</span>
-          <Heart className="w-4 h-4 text-red-500 fill-red-500 inline-block" />
+          <span>Made By Two Fellows😎</span>
         </div>
       </footer>
 
