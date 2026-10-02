@@ -2,7 +2,16 @@ import * as XLSX from 'xlsx';
 import { ProcessedProductRecord, ValidationIssue, ImageTeamRecord } from '../types';
 import { getGMImageAngleUrls } from './imageUrlGenerator';
 
-export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
+export function exportEcommerceExcel(
+  products: ProcessedProductRecord[],
+  options?: { hideEan?: boolean; filename?: string }
+): void {
+  // Determine if EAN column should be removed:
+  // When in Toon Label Comparator mode, EAN column is omitted per user requirement.
+  const shouldHideEan =
+    options?.hideEan ??
+    (products.length > 0 && products.every((p) => !p.ean || p.ean.trim() === ''));
+
   const dataRows = products.map((p) => {
     const imageUrls = getGMImageAngleUrls(p);
 
@@ -15,15 +24,19 @@ export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
       'Colour': p.colour,
       'Size': p.size,
       'Fabric': p.fabric,
-      'EAN': String(p.ean), // Force string format for EAN
-      'Toon Label': p.toonLabel || p.styleNo || '',
-      'Selling Price': p.sellingPrice,
-      'Total Quantity': p.stockQuantity,
-      'front': imageUrls.front,
-      'back': imageUrls.back,
-      'left': imageUrls.left,
-      'closeup': imageUrls.closeup,
     };
+
+    if (!shouldHideEan) {
+      row['EAN'] = String(p.ean || '');
+    }
+
+    row['Toon Label'] = p.toonLabel || p.styleNo || '';
+    row['Selling Price'] = p.sellingPrice;
+    row['Total Quantity'] = p.stockQuantity;
+    row['front'] = imageUrls.front;
+    row['back'] = imageUrls.back;
+    row['left'] = imageUrls.left;
+    row['closeup'] = imageUrls.closeup;
 
     return row;
   });
@@ -40,21 +53,34 @@ export function exportEcommerceExcel(products: ProcessedProductRecord[]): void {
     { wch: 14 }, // Colour
     { wch: 10 }, // Size
     { wch: 16 }, // Fabric
-    { wch: 18 }, // EAN
-    { wch: 18 }, // Toon Label (right next to EAN)
+  ];
+
+  if (!shouldHideEan) {
+    colWidths.push({ wch: 18 }); // EAN
+  }
+
+  colWidths.push(
+    { wch: 18 }, // Toon Label
     { wch: 14 }, // Selling Price
     { wch: 16 }, // Total Quantity
     { wch: 75 }, // front
     { wch: 75 }, // back
     { wch: 75 }, // left
-    { wch: 75 }, // closeup
-  ];
+    { wch: 75 }  // closeup
+  );
+
   worksheet['!cols'] = colWidths;
 
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'E-Commerce Products');
+  const sheetName = shouldHideEan ? 'Toon Label Catalog' : 'E-Commerce Products';
+  const defaultFileName = shouldHideEan
+    ? 'GM_Fashion_Toon_Label_Products.xlsx'
+    : 'GM_Fashion_Ecommerce_Products.xlsx';
+  const finalFileName = options?.filename || defaultFileName;
 
-  XLSX.writeFile(workbook, 'GM_Fashion_Ecommerce_Products.xlsx');
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+  XLSX.writeFile(workbook, finalFileName);
 }
 
 export function exportStoreInventoryExcel(products: ProcessedProductRecord[]): void {

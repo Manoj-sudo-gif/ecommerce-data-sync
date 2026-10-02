@@ -4,10 +4,15 @@ import { Layers, AlertCircle, ChevronDown, ChevronRight, Store } from 'lucide-re
 
 interface DataTableViewProps {
   products: ProcessedProductRecord[];
+  isToonMode?: boolean;
 }
 
-export const DataTableView: React.FC<DataTableViewProps> = ({ products }) => {
+export const DataTableView: React.FC<DataTableViewProps> = ({ products, isToonMode }) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  // Auto-detect Toon Mode if all products have empty EAN
+  const effectiveToonMode =
+    isToonMode ?? (products.length > 0 && products.every((p) => !p.ean || p.ean.trim() === ''));
 
   const toggleRow = (id: string) => {
     setExpandedRowId(expandedRowId === id ? null : id);
@@ -40,9 +45,15 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ products }) => {
               <th className="py-3 px-3">Colour</th>
               <th className="py-3 px-3">Size</th>
               <th className="py-3 px-3">Fabric</th>
-              <th className="py-3 px-3">EAN</th>
+              {effectiveToonMode ? (
+                <th className="py-3 px-3 text-indigo-300">Toon Label</th>
+              ) : (
+                <th className="py-3 px-3">EAN</th>
+              )}
               <th className="py-3 px-3 text-right">MRP (₹)</th>
-              <th className="py-3 px-3 text-center">Agg. Stock</th>
+              <th className="py-3 px-3 text-center">
+                {effectiveToonMode ? 'Total Quantity' : 'Agg. Stock'}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-sans">
@@ -120,10 +131,18 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ products }) => {
                       {p.fabric}
                     </td>
 
-                    {/* EAN */}
-                    <td className="py-3 px-3 font-mono font-bold text-slate-800 tracking-tight">
-                      {p.ean}
-                    </td>
+                    {/* EAN or Toon Label depending on mode */}
+                    {effectiveToonMode ? (
+                      <td className="py-3 px-3 font-mono font-bold text-indigo-700 tracking-tight">
+                        <span className="bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                          {p.toonLabel || p.styleNo || '-'}
+                        </span>
+                      </td>
+                    ) : (
+                      <td className="py-3 px-3 font-mono font-bold text-slate-800 tracking-tight">
+                        {p.ean}
+                      </td>
+                    )}
 
                     {/* MRP */}
                     <td className="py-3 px-3 text-right font-mono font-semibold text-slate-900">
@@ -156,14 +175,19 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ products }) => {
                             <div className="flex items-center space-x-2">
                               <Store className="w-4 h-4 text-amber-600" />
                               <h5 className="font-semibold text-slate-800 text-xs">
-                                Individual Store Stock for EAN {p.ean} ({p.brand} {p.colour} {p.size})
+                                {effectiveToonMode
+                                  ? `Store Breakdown for Toon Label: ${p.toonLabel || p.styleNo} (${p.brand} ${p.colour})`
+                                  : `Individual Store Stock for EAN ${p.ean} (${p.brand} ${p.colour} ${p.size})`}
                               </h5>
                               <span className="bg-emerald-100 text-emerald-800 font-bold text-[10px] px-2 py-0.5 rounded-full border border-emerald-200">
                                 {p.stockQuantity} Total Units • {p.storeCount} Stores
                               </span>
                             </div>
                             <span className="text-xs text-slate-500 font-mono">
-                              Toon Label: <strong className="text-slate-800">{p.toonLabel || p.styleNo}</strong> | S-Size Ref EAN: <strong className="text-amber-700">{p.imagePath.replace('images/', '').replace('.jpg', '')}</strong>
+                              Toon Label: <strong className="text-slate-800">{p.toonLabel || p.styleNo}</strong>
+                              {p.sSizeEan && (
+                                <> | S-Size Ref EAN: <strong className="text-amber-700">{p.sSizeEan}</strong></>
+                              )}
                             </span>
                           </div>
 

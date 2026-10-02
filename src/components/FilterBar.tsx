@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, RotateCcw, Hash, Trash2, Loader2, Package, Barcode } from 'lucide-react';
+import { Search, Filter, RotateCcw, Hash, Trash2, Loader2, Package, Barcode, Layers } from 'lucide-react';
 import { FilterState, StockComparisonOperator } from '../types';
 
 const STOCK_NUMBERS = [
@@ -83,6 +83,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     ).size;
   }, [filters.batchEanInput]);
 
+  const batchToonCount = React.useMemo(() => {
+    if (!filters.batchToonInput || !filters.batchToonInput.trim()) return 0;
+    return new Set(
+      filters.batchToonInput
+        .split(/[\n\r,;\t ]+/)
+        .map((t) => t.trim().replace(/^['"`\s]+|['"`\s]+$/g, ''))
+        .filter((t) => t.length >= 2)
+    ).size;
+  }, [filters.batchToonInput]);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -111,15 +121,34 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <div className="flex items-center space-x-2">
             <Barcode className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <span>
-              Batch EAN Active: <strong>{batchEanCount} EAN codes</strong>. Stock & field filters below will apply on these codes.
+              Batch EAN Active: <strong>{batchEanCount} EAN codes</strong>. EAN column will be shown in output.
             </span>
           </div>
           <button
-            onClick={() => onFilterChange({ ...filters, batchEanInput: '' })}
+            onClick={() => onFilterChange({ ...filters, batchEanInput: '', activeMatchMode: filters.batchToonInput ? 'TOON' : 'ALL' })}
             className="text-[11px] text-rose-700 hover:text-rose-900 font-bold hover:underline ml-2"
             title="Clear Batch EAN filter"
           >
             Clear Batch EANs
+          </button>
+        </div>
+      )}
+
+      {/* Toon Label Comparator active badge if user entered Toon Labels */}
+      {batchToonCount > 0 && (
+        <div className="flex items-center justify-between bg-indigo-50/80 border border-indigo-300/80 px-3 py-2 rounded-lg text-xs text-indigo-950 font-medium">
+          <div className="flex items-center space-x-2">
+            <Layers className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+            <span>
+              Toon Label Comparator Active: <strong>{batchToonCount} unique Toon Labels</strong> (Merged & Deduplicated • Total Quantity Summed • EAN Column Omitted).
+            </span>
+          </div>
+          <button
+            onClick={() => onFilterChange({ ...filters, batchToonInput: '', activeMatchMode: filters.batchEanInput ? 'EAN' : 'ALL' })}
+            className="text-[11px] text-rose-700 hover:text-rose-900 font-bold hover:underline ml-2"
+            title="Clear Toon Label Comparator filter"
+          >
+            Clear Toon Labels
           </button>
         </div>
       )}

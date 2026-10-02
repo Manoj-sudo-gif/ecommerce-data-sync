@@ -23,10 +23,12 @@ interface HeaderProps {
   onClearSession: () => void;
   onProcessData: () => void;
   onExportEcommerce: () => void;
+  onExportToonEcommerce?: () => void;
   onExportStoreInventory?: () => void;
   onExportImageTeam: () => void;
   onExportErrorReport: () => void;
   isProcessing: boolean;
+  isToonMode?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,10 +39,12 @@ export const Header: React.FC<HeaderProps> = ({
   onClearSession,
   onProcessData,
   onExportEcommerce,
+  onExportToonEcommerce,
   onExportStoreInventory,
   onExportImageTeam,
   onExportErrorReport,
   isProcessing,
+  isToonMode,
 }) => {
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -127,25 +131,70 @@ export const Header: React.FC<HeaderProps> = ({
                       Download Excel Workbooks
                     </div>
 
-                    <button
-                      onClick={() => {
-                        onExportEcommerce();
-                        setIsExportMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/70 transition flex items-start space-x-3 group"
-                    >
-                      <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 mt-0.5">
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold text-white group-hover:text-emerald-300">
-                          E-Commerce Master Catalog
+                    {isToonMode ? (
+                      <button
+                        onClick={() => {
+                          onExportEcommerce();
+                          setIsExportMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/70 transition flex items-start space-x-3 group bg-indigo-950/30"
+                      >
+                        <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 mt-0.5">
+                          <FileSpreadsheet className="w-4 h-4" />
                         </div>
-                        <div className="text-[11px] text-slate-400 truncate">
-                          EAN, Toon Label, pricing, stock & 4 image URLs
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white group-hover:text-indigo-300 flex items-center space-x-1.5">
+                            <span>Toon Label Catalog (No EAN)</span>
+                            <span className="bg-indigo-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.2 rounded-full">ACTIVE</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate">
+                            Deduplicated Toons, Total Stock & 4 Image URLs
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          onExportEcommerce();
+                          setIsExportMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/70 transition flex items-start space-x-3 group"
+                      >
+                        <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 mt-0.5">
+                          <FileSpreadsheet className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white group-hover:text-emerald-300">
+                            E-Commerce Master Catalog
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate">
+                            EAN, Toon Label, pricing, stock & 4 image URLs
+                          </div>
+                        </div>
+                      </button>
+                    )}
+
+                    {onExportToonEcommerce && !isToonMode && (
+                      <button
+                        onClick={() => {
+                          onExportToonEcommerce();
+                          setIsExportMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/70 transition flex items-start space-x-3 group"
+                      >
+                        <div className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 mt-0.5">
+                          <Layers className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white group-hover:text-indigo-300">
+                            Toon Label Catalog (No EAN)
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate">
+                            Deduplicated by Toon Label, combined stock
+                          </div>
+                        </div>
+                      </button>
+                    )}
 
                     {onExportStoreInventory && (
                       <button

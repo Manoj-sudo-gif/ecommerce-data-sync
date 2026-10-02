@@ -470,15 +470,148 @@ export async function processWondersoftPipeline(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Toon Label Comparator: Group by Toon Label, merge total quantities, remove duplicates, omit EAN
+// ---------------------------------------------------------------------------
+export function aggregateProductsByToonLabel(
+  products: ProcessedProductRecord[],
+  targetToonLabels?: string[]
+): ProcessedProductRecord[] {
+  // Collect target toons if provided
+  const targetToonSet = new Set<string>();
+  const targetCleanSet = new Set<string>();
+
+  if (targetToonLabels && targetToonLabels.length > 0) {
+    targetToonLabels.forEach((t) => {
+      const clean = t.trim().toUpperCase().replace(/^['"`\s]+|['"`\s]+$/g, '');
+      if (clean) {
+        targetToonSet.add(clean);
+        const alphanumeric = clean.replace(/[^A-Z0-9]/gi, '');
+        if (alphanumeric) targetCleanSet.add(alphanumeric);
+      }
+    });
+  }
+
+  // Filter products if targetToons is provided
+  const candidateProducts =
+    targetToonSet.size > 0
+      ? products.filter((p) => {
+          const rawToon = String(p.toonLabel || p.styleNo || '').trim().toUpperCase();
+          if (!rawToon) return false;
+          if (targetToonSet.has(rawToon)) return true;
+          const cleanPToon = rawToon.replace(/[^A-Z0-9]/gi, '');
+          if (cleanPToon && targetCleanSet.has(cleanPToon)) return true;
+          for (const t of targetToonSet) {
+            if (rawToon === t || rawToon.includes(t) || t.includes(rawToon)) return true;
+          }
+          return false;
+        })
+      : products;
+
+  // Group strictly by TOON LABEL
+  const toonGroupMap = new Map<string, ProcessedProductRecord[]>();
+
+  candidateProducts.forEach((p) => {
+    const rawToon = String(p.toonLabel || p.styleNo || '').trim();
+    const toonKey = rawToon.toUpperCase();
+    if (!toonKey) return;
+    if (!toonGroupMap.has(toonKey)) {
+      toonGroupMap.set(toonKey, []);
+    }
+    toonGroupMap.get(toonKey)!.push(p);
+  });
+
+  const aggregatedList: ProcessedProductRecord[] = [];
+
+  toonGroupMap.forEach((group, toonKey) => {
+    // Pick the best representative SKU for this Toon Label:
+    // 1. SKU whose EAN matches sSizeEan
+    // 2. SKU with size 'S'
+    // 3. First available SKU
+    let rep = group.find((p) => p.ean && p.ean === p.sSizeEan);
+    if (!rep) {
+      rep = group.find((p) => p.size?.trim().toUpperCase() === 'S');
+    }
+    if (!rep) {
+      rep = group[0];
+    }
+
+    // Sum total quantity across all SKUs matching this Toon Label
+    const totalQuantity = group.reduce(
+      (sum, p) => sum + (Number(p.stockQuantity) || 0),
+      0
+    );
+
+    // Merge store breakdown
+    const storeStockMap: Record<string, number> = {};
+    group.forEach((item) => {
+      item.storeBreakdown?.forEach((sb) => {
+        const sName = sb.store?.trim();
+        if (sName) {
+          storeStockMap[sName] = (storeStockMap[sName] || 0) + (sb.stock || 0);
+        }
+      });
+    });
+
+    const aggregatedStoreBreakdown = Object.entries(storeStockMap).map(([store, stock]) => ({
+      store,
+      stock,
+      mrp: rep.sellingPrice,
+    }));
+
+    const aggregatedStoreSummary = aggregatedStoreBreakdown
+      .map((sb) => `${sb.store}: ${sb.stock}`)
+      .join(' | ');
+
+    // Collect all unique sizes in this group
+    const uniqueSizes = Array.from(
+      new Set(group.map((p) => p.size?.trim()).filter(Boolean))
+    ).join(', ');
+
+    aggregatedList.push({
+      ...rep,
+      id: `toon_${toonKey}`,
+      ean: '', // OMIT EAN in Toon Label output
+      toonLabel: rep.toonLabel || rep.styleNo || toonKey,
+      styleNo: rep.toonLabel || rep.styleNo || toonKey,
+      stockQuantity: totalQuantity, // Consolidated total quantity
+      size: uniqueSizes || rep.size,
+      storeCount: Object.keys(storeStockMap).length || rep.storeCount,
+      storeBreakdown: aggregatedStoreBreakdown,
+      storeBreakdownSummary: aggregatedStoreSummary,
+    });
+  });
+
+  return aggregatedList;
+}
+
 export function applyProductFilters(
   products: ProcessedProductRecord[],
   filters: FilterState
 ): ProcessedProductRecord[] {
+  const isToonMode =
+    filters.activeMatchMode === 'TOON' ||
+    (!filters.activeMatchMode && Boolean(filters.batchToonInput && filters.batchToonInput.trim().length > 0));
+
+  // If in Toon Label Comparator mode, aggregate and deduplicate by Toon Label first
+  let targetProducts = products;
+  if (isToonMode && filters.batchToonInput && filters.batchToonInput.trim().length > 0) {
+    const rawTokens = filters.batchToonInput
+      .split(/[\n\r,;\t ]+/)
+      .map((t) => t.trim().replace(/^['"`\s]+|['"`\s]+$/g, ''))
+      .filter((t) => t.length >= 2);
+    targetProducts = aggregateProductsByToonLabel(products, rawTokens);
+  }
+
   // Parse batch EAN input if provided into sets for strict, exact matching
   const batchEanCleanSet = new Set<string>();
   const batchEanNoZeroSet = new Set<string>();
 
-  if (filters.batchEanInput && filters.batchEanInput.trim().length > 0) {
+  const isEanMode =
+    filters.activeMatchMode === 'EAN' ||
+    (!filters.activeMatchMode && Boolean(filters.batchEanInput && filters.batchEanInput.trim().length > 0));
+
+  if (isEanMode && filters.batchEanInput && filters.batchEanInput.trim().length > 0) {
     const rawTokens = filters.batchEanInput.split(/[\n\r,;\t ]+/);
     for (const token of rawTokens) {
       // Clean quotes, punctuation and spaces from searched token
@@ -493,7 +626,7 @@ export function applyProductFilters(
     }
   }
 
-  return products.filter((p) => {
+  return targetProducts.filter((p) => {
     // 1. Batch Multi-EAN Search Filter (Strict exact match ONLY on product's actual EAN code)
     if (batchEanCleanSet.size > 0) {
       const pEan = (p.ean || '').toLowerCase().trim();

@@ -110,6 +110,8 @@ export interface FilterState {
   maxStock: string;
   reviewStatus: 'ALL' | 'APPROVED' | 'REVIEW_REQUIRED';
   batchEanInput?: string;
+  batchToonInput?: string;
+  activeMatchMode?: 'ALL' | 'EAN' | 'TOON';
 }
 
 export interface PricingRulesConfig {

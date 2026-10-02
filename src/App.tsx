@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { UploadPanel } from './components/UploadPanel';
 import { BatchEanFetcher } from './components/BatchEanFetcher';
+import { ToonLabelComparator } from './components/ToonLabelComparator';
 import { FilterBar } from './components/FilterBar';
 import { DataTableView } from './components/DataTableView';
 import { AICategoryReviewTable } from './components/AICategoryReviewTable';
@@ -42,6 +43,7 @@ import {
   AlertTriangle,
   Settings,
   Barcode,
+  Layers,
 } from 'lucide-react';
 
 const INITIAL_FILTERS: FilterState = {
@@ -59,6 +61,8 @@ const INITIAL_FILTERS: FilterState = {
   maxStock: '',
   reviewStatus: 'ALL',
   batchEanInput: '',
+  batchToonInput: '',
+  activeMatchMode: 'ALL',
 };
 
 const INITIAL_PRICING_CONFIG: PricingRulesConfig = {
@@ -197,6 +201,10 @@ export function App() {
     );
   };
 
+  const isToonMode =
+    filters.activeMatchMode === 'TOON' ||
+    (!filters.activeMatchMode && Boolean(filters.batchToonInput && filters.batchToonInput.trim().length > 0));
+
   const filteredProducts = applyProductFilters(processedProducts, filters);
 
   const reviewNeededCount = processedProducts.filter(
@@ -213,11 +221,13 @@ export function App() {
         errorCount={validationIssues.length}
         onClearSession={handleClearSession}
         onProcessData={() => runPipeline(rawRecords, columnMapping, pricingConfig)}
-        onExportEcommerce={() => exportEcommerceExcel(filteredProducts)}
+        onExportEcommerce={() => exportEcommerceExcel(filteredProducts, { hideEan: isToonMode })}
+        onExportToonEcommerce={() => exportEcommerceExcel(filteredProducts, { hideEan: true })}
         onExportStoreInventory={() => exportStoreInventoryExcel(filteredProducts)}
         onExportImageTeam={() => exportImageTeamExcel(filteredProducts)}
         onExportErrorReport={() => exportErrorReportExcel(validationIssues)}
         isProcessing={isProcessing}
+        isToonMode={isToonMode}
       />
 
       {/* Main Workspace */}
@@ -234,15 +244,27 @@ export function App() {
           isProcessing={isProcessing}
         />
 
-        {/* Batch EAN Code Search & Fetcher */}
-        <BatchEanFetcher
-          products={processedProducts}
-          rawCount={rawRecords.length}
-          filters={filters}
-          onFilterChange={setFilters}
-          onSelectTableTab={() => setActiveTab('table')}
-          onProcessData={handleFetchAndProcessData}
-        />
+        {/* Batch Code Fetcher & Toon Label Comparator: Side by Side on Desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BatchEanFetcher
+            products={processedProducts}
+            rawCount={rawRecords.length}
+            filters={filters}
+            onFilterChange={setFilters}
+            onSelectTableTab={() => setActiveTab('table')}
+            onProcessData={handleFetchAndProcessData}
+            onExportEanExcel={() => exportEcommerceExcel(filteredProducts, { hideEan: false })}
+          />
+          <ToonLabelComparator
+            products={processedProducts}
+            rawCount={rawRecords.length}
+            filters={filters}
+            onFilterChange={setFilters}
+            onSelectTableTab={() => setActiveTab('toon-comparator')}
+            onProcessData={handleFetchAndProcessData}
+            onExportToonExcel={() => exportEcommerceExcel(filteredProducts, { hideEan: true })}
+          />
+        </div>
 
         {/* Top-Level Filter Bar (Always accessible before and after data processing) */}
         <FilterBar
@@ -297,6 +319,21 @@ export function App() {
                 <span>Batch EAN Fetcher</span>
                 {filters.batchEanInput && (
                   <span className="w-2 h-2 rounded-full bg-amber-400 ml-0.5"></span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('toon-comparator')}
+                className={`px-3.5 py-2 rounded-xl transition flex items-center space-x-2 relative ${
+                  activeTab === 'toon-comparator'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                <Layers className="w-4 h-4 text-indigo-400" />
+                <span>Toon Label Comparator</span>
+                {filters.batchToonInput && (
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 ml-0.5"></span>
                 )}
               </button>
 
@@ -396,17 +433,52 @@ export function App() {
                 </div>
 
                 {/* Main Product Table View */}
-                <DataTableView products={filteredProducts} />
+                <DataTableView products={filteredProducts} isToonMode={isToonMode} />
               </div>
             )}
 
             {/* Table View Tab */}
-            {activeTab === 'table' && <DataTableView products={filteredProducts} />}
+            {activeTab === 'table' && <DataTableView products={filteredProducts} isToonMode={isToonMode} />}
 
             {/* Batch EAN Fetcher Tab */}
             {activeTab === 'batch-ean' && (
               <div className="space-y-4">
-                <DataTableView products={filteredProducts} />
+                <div className="bg-amber-50/70 border border-amber-200 px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2 text-xs text-amber-950 font-medium">
+                    <Barcode className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>
+                      Batch EAN Results ({filteredProducts.length.toLocaleString()} matching products). EAN column shown.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => exportEcommerceExcel(filteredProducts, { hideEan: false })}
+                    className="text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-1.5 rounded-lg transition shadow-xs self-start sm:self-auto"
+                  >
+                    Export EAN Excel
+                  </button>
+                </div>
+                <DataTableView products={filteredProducts} isToonMode={false} />
+              </div>
+            )}
+
+            {/* Toon Label Comparator Tab */}
+            {activeTab === 'toon-comparator' && (
+              <div className="space-y-4">
+                <div className="bg-indigo-50/70 border border-indigo-200 px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2 text-xs text-indigo-950 font-medium">
+                    <Layers className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span>
+                      Toon Label Comparator ({filteredProducts.length.toLocaleString()} unique Toons). Duplicate rows merged • Total stock quantity summed • EAN column omitted.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => exportEcommerceExcel(filteredProducts, { hideEan: true })}
+                    className="text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg transition shadow-xs self-start sm:self-auto"
+                  >
+                    Export Toon Excel (No EAN)
+                  </button>
+                </div>
+                <DataTableView products={filteredProducts} isToonMode={true} />
               </div>
             )}
 
